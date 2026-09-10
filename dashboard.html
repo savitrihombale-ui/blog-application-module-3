@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Blog Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        input {
+            padding: 10px;
+            width: 300px;
+        }
+
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        .blog {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>My Blog Dashboard</h1>
+
+    <h3 id="welcome"></h3>
+
+    <a href="create-blog.html">
+        <button type="button">
+            Create Blog
+        </button>
+    </a>
+
+    <a href="profile.html">
+        <button type="button">
+            My Profile
+        </button>
+    </a>
+
+    <button type="button" onclick="logout()">
+        Logout
+    </button>
+
+    <hr>
+
+    <h2>My Blogs</h2>
+
+    <!-- SEARCH -->
+    <input
+        type="text"
+        id="search"
+        placeholder="Search blogs..."
+        onkeyup="searchBlogs()"
+    >
+
+    <div id="blogs">
+        Loading blogs...
+    </div>
+
+
+<script>
+
+// ======================================
+// CHECK LOGIN
+// ======================================
+
+const token = localStorage.getItem("token");
+
+const user = JSON.parse(
+    localStorage.getItem("user")
+);
+
+
+if (!token) {
+
+    window.location.href = "login.html";
+
+}
+
+
+// ======================================
+// SHOW USER NAME
+// ======================================
+
+if (user) {
+
+    document.getElementById("welcome").innerText =
+        "Welcome, " + user.name;
+
+}
+
+
+// ======================================
+// STORE BLOGS
+// ======================================
+
+let allBlogs = [];
+
+
+// ======================================
+// LOAD MY BLOGS
+// ======================================
+
+async function loadBlogs() {
+
+    try {
+
+        const response = await fetch(
+            "/api/blogs/my",
+            {
+                method: "GET",
+
+                headers: {
+                    "Authorization":
+                        "Bearer " + token
+                }
+            }
+        );
+
+
+        const data = await response.json();
+
+
+        // Token invalid
+        if (response.status === 401) {
+
+            alert("Session expired. Please login again.");
+
+            logout();
+
+            return;
+        }
+
+
+        if (!response.ok) {
+
+            document.getElementById("blogs").innerHTML =
+                "<p>" +
+                (data.message || "Failed to load blogs") +
+                "</p>";
+
+            return;
+        }
+
+
+        allBlogs = data;
+
+        displayBlogs(allBlogs);
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("blogs").innerHTML =
+            "<p>Cannot connect to server.</p>";
+
+    }
+}
+
+
+// ======================================
+// DISPLAY BLOGS
+// ======================================
+
+function displayBlogs(blogs) {
+
+    const container =
+        document.getElementById("blogs");
+
+    container.innerHTML = "";
+
+
+    if (!blogs || blogs.length === 0) {
+
+        container.innerHTML =
+            "<p>You have not created any blogs yet.</p>";
+
+        return;
+    }
+
+
+    blogs.forEach(function(blog) {
+
+        const div =
+            document.createElement("div");
+
+        div.className = "blog";
+
+
+        let shortContent = blog.content || "";
+
+
+        if (shortContent.length > 150) {
+
+            shortContent =
+                shortContent.substring(0, 150) + "...";
+
+        }
+
+
+        div.innerHTML = `
+
+            <h2>${escapeHTML(blog.title)}</h2>
+
+            <p>
+                ${escapeHTML(shortContent)}
+            </p>
+
+            <p>
+                <strong>Category:</strong>
+                ${escapeHTML(blog.category || "General")}
+            </p>
+
+            <button
+                type="button"
+                onclick="readMore('${blog._id}')">
+                Read More
+            </button>
+
+            <button
+                type="button"
+                onclick="editBlog('${blog._id}')">
+                Edit
+            </button>
+
+            <button
+                type="button"
+                onclick="deleteBlog('${blog._id}')">
+                Delete
+            </button>
+
+        `;
+
+
+        container.appendChild(div);
+
+    });
+}
+
+
+// ======================================
+// READ MORE
+// ======================================
+
+function readMore(id) {
+
+    window.location.href =
+        "blog-details.html?id=" + id;
+
+}
+
+
+// ======================================
+// EDIT BLOG
+// ======================================
+
+function editBlog(id) {
+
+    window.location.href =
+        "edit-blog.html?id=" + id;
+
+}
+
+
+// ======================================
+// DELETE BLOG
+// ======================================
+
+async function deleteBlog(id) {
+
+    const confirmDelete =
+        confirm(
+            "Are you sure you want to delete this blog?"
+        );
+
+
+    if (!confirmDelete) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/blogs/" + id,
+                {
+
+                    method: "DELETE",
+
+                    headers: {
+
+                        "Authorization":
+                            "Bearer " + token
+
+                    }
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (response.status === 401) {
+
+            alert(
+                "Session expired. Please login again."
+            );
+
+            logout();
+
+            return;
+
+        }
+
+
+        if (response.ok) {
+
+            alert(
+                "Blog deleted successfully!"
+            );
+
+            loadBlogs();
+
+        } else {
+
+            alert(
+                data.message ||
+                "Delete failed"
+            );
+
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Cannot connect to server."
+        );
+
+    }
+
+}
+
+
+// ======================================
+// SEARCH
+// ======================================
+
+function searchBlogs() {
+
+    const searchText =
+        document.getElementById("search")
+            .value
+            .toLowerCase()
+            .trim();
+
+
+    const filteredBlogs =
+        allBlogs.filter(function(blog) {
+
+            return (
+
+                (blog.title || "")
+                    .toLowerCase()
+                    .includes(searchText)
+
+                ||
+
+                (blog.content || "")
+                    .toLowerCase()
+                    .includes(searchText)
+
+                ||
+
+                (blog.category || "")
+                    .toLowerCase()
+                    .includes(searchText)
+
+            );
+
+        });
+
+
+    displayBlogs(filteredBlogs);
+
+}
+
+
+// ======================================
+// LOGOUT
+// ======================================
+
+function logout() {
+
+    localStorage.removeItem("token");
+
+    localStorage.removeItem("user");
+
+    window.location.href =
+        "login.html";
+
+}
+
+
+// ======================================
+// HTML SECURITY
+// ======================================
+
+function escapeHTML(text) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent = text;
+
+    return div.innerHTML;
+
+}
+
+
+// ======================================
+// START
+// ======================================
+
+loadBlogs();
+
+</script>
+
+</body>
+
+</html>

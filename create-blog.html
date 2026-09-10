@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Blog</title>
+</head>
+
+<body>
+
+    <h1>Create New Blog</h1>
+
+    <form id="blogForm">
+
+        <label>Blog Title</label><br>
+        <input
+            type="text"
+            id="title"
+            placeholder="Enter blog title"
+            required
+        >
+
+        <br><br>
+
+        <label>Category</label><br>
+        <input
+            type="text"
+            id="category"
+            placeholder="Technology"
+        >
+
+        <br><br>
+
+        <label>Content</label><br>
+        <textarea
+            id="content"
+            rows="10"
+            cols="50"
+            placeholder="Write your blog..."
+            required
+        ></textarea>
+
+        <br><br>
+
+        <button type="submit">
+            Create Blog
+        </button>
+
+    </form>
+
+    <p id="message"></p>
+
+    <br>
+
+    <button onclick="goDashboard()">
+        Back to Dashboard
+    </button>
+
+<script>
+
+const token = localStorage.getItem("token");
+
+
+// Check login
+if (!token) {
+
+    alert("Please login first.");
+
+    window.location.href = "login.html";
+
+}
+
+
+// Create blog
+document.getElementById("blogForm")
+    .addEventListener("submit", async function(event) {
+
+        event.preventDefault();
+
+        const title =
+            document.getElementById("title").value.trim();
+
+        const content =
+            document.getElementById("content").value.trim();
+
+        const category =
+            document.getElementById("category").value.trim();
+
+
+        if (!title || !content) {
+
+            document.getElementById("message")
+                .innerText =
+                "Title and content are required.";
+
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                "/api/blogs",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+
+                    body: JSON.stringify({
+                        title: title,
+                        content: content,
+                        category: category || "General"
+                    })
+                }
+            );
+
+
+            const data = await response.json();
+
+            console.log("Server response:", data);
+
+
+            if (response.status === 401) {
+
+                alert("Please login again.");
+
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+
+                window.location.href =
+                    "login.html";
+
+                return;
+            }
+
+
+            if (!response.ok) {
+
+                document.getElementById("message")
+                    .innerText =
+                    data.message ||
+                    "Blog creation failed.";
+
+                return;
+            }
+
+
+            document.getElementById("message")
+                .innerText =
+                "Blog created successfully!";
+
+
+            document.getElementById("blogForm")
+                .reset();
+
+
+            setTimeout(function() {
+
+                window.location.href =
+                    "dashboard.html";
+
+            }, 1000);
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            document.getElementById("message")
+                .innerText =
+                "Cannot connect to server.";
+
+        }
+
+    });
+
+
+function goDashboard() {
+
+    window.location.href =
+        "dashboard.html";
+
+}
+
+</script>
+
+</body>
+
+</html>

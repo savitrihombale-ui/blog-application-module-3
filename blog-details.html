@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Blog Details</title>
+
+</head>
+
+<body>
+
+    <h1 id="title">Loading...</h1>
+
+    <p>
+        <strong>Author:</strong>
+        <span id="author"></span>
+    </p>
+
+    <p>
+        <strong>Category:</strong>
+        <span id="category"></span>
+    </p>
+
+    <hr>
+
+    <h3>Blog Content</h3>
+
+    <p id="content"></p>
+
+    <br>
+
+    <a href="dashboard.html">
+        <button>Back to Dashboard</button>
+    </a>
+
+
+<script>
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const blogId =
+    params.get("id");
+
+
+if (!blogId) {
+
+    document.getElementById("title").innerText =
+        "Blog ID not found";
+
+} else {
+
+    loadBlog();
+
+}
+
+
+async function loadBlog() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/blogs/" + blogId
+            );
+
+
+        const blog =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            document.getElementById("title").innerText =
+                blog.message;
+
+            return;
+
+        }
+
+
+        document.getElementById("title").innerText =
+            blog.title;
+
+
+        document.getElementById("author").innerText =
+            blog.author;
+
+
+        document.getElementById("category").innerText =
+            blog.category || "General";
+
+
+        document.getElementById("content").innerText =
+            blog.content;
+
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        document.getElementById("title").innerText =
+            "Cannot connect to server.";
+
+    }
+
+}
+
+</script>
+
+</body>
+
+</html>
